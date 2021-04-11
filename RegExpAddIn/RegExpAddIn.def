@@ -1,0 +1,7 @@
+LIBRARY    "RegExpAddIn"
+
+EXPORTS
+GetClassObject
+DestroyObject
+GetClassNames
+SetPlatformCapabilities
