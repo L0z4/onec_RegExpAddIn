@@ -37,3 +37,7 @@
 *.epf
 *.erf
 *.log
+
+**/Release/
+**/x64/
+**/.vc/
