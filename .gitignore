@@ -39,5 +39,6 @@
 *.log
 
 **/Release/
+**/Debug/
 **/x64/
 **/.vc/
