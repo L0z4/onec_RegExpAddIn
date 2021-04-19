@@ -26,11 +26,11 @@
 #define BASE_ERRNO     7
 
 static const wchar_t *g_PropNames[] = {L"isCaseSensitive", L"Last" };
-static const wchar_t *g_MethodNames[] = {L"ShowMessageBox", L"Sleep", L"Match", L"Replace", L"Search", L"GetSearchResult", L"ClipboardCopy",
+static const wchar_t *g_MethodNames[] = {L"ShowMessageBox", L"Sleep", L"Match", L"Replace", L"Search", L"GetSearchResult",
 		 L"Last" };
 
 static const wchar_t *g_PropNamesRu[] = {L"ЧувствителенКРегистру", L"Last" };
-static const wchar_t *g_MethodNamesRu[] = {L"ПоказатьСообщение", L"Спать", L"Совпадает", L"Заменить", L"Найти", L"РезультатПоиска",  L"БуферКопировать",
+static const wchar_t *g_MethodNamesRu[] = {L"ПоказатьСообщение", L"Спать", L"Совпадает", L"Заменить", L"Найти", L"РезультатПоиска",
 		 L"Last" };
 
 static const wchar_t g_kClassNames[] = L"CAddInNative";   
@@ -311,8 +311,6 @@ long CAddInNative::GetNParams(const long lMethodNum)
 		return 2;
 	case eGetSearchResult:
 		return 1;
-    case eClipboardCopy:
-        return 2;
     default:
         return 0;
     }
@@ -351,8 +349,6 @@ bool CAddInNative::HasRetVal(const long lMethodNum)
 		return true;
 	case eGetSearchResult:
 		return true;
-    case eClipboardCopy:
-        return true;
     default:
         return false;
     }
@@ -552,95 +548,6 @@ bool CAddInNative::CallAsFunc(const long lMethodNum,
 		ret = true;
 		break;
 	}
-    case eClipboardCopy:
-    {
-        ret = true;
-
-        TV_VT(pvarRetValue) = VTYPE_BOOL;
-        pvarRetValue->bVal = false;
-
-        if (!OpenClipboard(0))
-        {
-            ret = false;
-            break;
-        }
-
-        EmptyClipboard();
-
-        wchar_t* const copydata = (paParams)->pwstrVal;
-
- 
-        size_t const size = wcslen(copydata) * 2 + 4;
-        if (size > 4)
-        {
-            HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, size);
-            memcpy(GlobalLock(hMem), copydata, size);
-            GlobalUnlock(hMem);
-
-            if (::SetClipboardData(CF_UNICODETEXT, hMem) == NULL)
-                ret = false;
-        }
-
-        wchar_t* const copyHTMLdata = (paParams + 1)->pwstrVal;
-        LPCWSTR lpszWide = (paParams + 1)->pwstrVal;
-
-        int const nUtf8Size = ::WideCharToMultiByte(CP_UTF8, 0, lpszWide, -1, NULL, 0, NULL, NULL);
-        if (nUtf8Size >= 1)
-        {
-            const int nDescLen = 105;
-            HGLOBAL hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, nDescLen + nUtf8Size);
-            if (NULL != hGlobal)
-            {
-                bool bErr = false;
-                LPSTR lpszBuf = static_cast<LPSTR>(::GlobalLock(hGlobal));
-                LPSTR lpszUtf8 = lpszBuf + nDescLen;
-                if (::WideCharToMultiByte(CP_UTF8, 0, lpszWide, -1, lpszUtf8, nUtf8Size, NULL, NULL) <= 0)
-                {
-                    bErr = true;
-                }
-                else
-                {
-                    LPCSTR lpszStartFrag = strstr(lpszUtf8, "<!--StartFragment-->");
-                    LPCSTR lpszEndFrag = strstr(lpszUtf8, "<!--EndFragment-->");
-                    lpszStartFrag += strlen("<!--StartFragment-->") + 2;
-
-                    int i = _snprintf(
-                        lpszBuf, nDescLen,
-                        "Version:1.0\r\nStartHTML:%010d\r\nEndHTML:%010d\r\nStartFragment:%010d\r\nEndFragment:%010d\r\n",
-                        nDescLen,
-                        nDescLen + nUtf8Size - 1,        // offset to next char behind string
-                        nDescLen + static_cast<int>(lpszStartFrag - lpszUtf8),
-                        nDescLen + static_cast<int>(lpszEndFrag - lpszUtf8));
-                }
-                ::GlobalUnlock(hGlobal);
-                if (bErr)
-                {
-                    ::GlobalFree(hGlobal);
-                    hGlobal = NULL;
-                }
-
-                // Get clipboard id for HTML format...
-                static int cfid = 0;
-                cfid = RegisterClipboardFormat(L"HTML Format");
-                // Open the clipboard...
-
-                HGLOBAL hText = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, strlen(lpszBuf) + 4);
-                char* ptr = (char*)GlobalLock(hText);
-                strcpy(ptr, lpszBuf);
-                GlobalUnlock(hText);
-                ::SetClipboardData(cfid, hText);
-                GlobalFree(hText);
-                
-            }
-        }
-
-        CloseClipboard();
-
-        TV_VT(pvarRetValue) = VTYPE_BOOL;
-        pvarRetValue->bVal = true;
-
-        break;
-    }
     }
 
     return ret; 

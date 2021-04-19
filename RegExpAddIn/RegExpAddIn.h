@@ -28,7 +28,6 @@ public:
 		eReplace,
 		eSearch,
 		eGetSearchResult,
-        eClipboardCopy,
         eMethLast      // Always last
     };
 
